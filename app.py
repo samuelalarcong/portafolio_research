@@ -37,33 +37,3 @@ st.subheader("Incremental VaR (Markowitz Portfolio)")
 inc_var_df, port_daily, weights_full = compute_incremental_var()
 st.dataframe(inc_var_df)
 
-# --- Bubble plot for IVaR
-st.subheader("IVaR Bubble Plot")
-n_tickers = len(inc_var_df)
-fig2, ax2 = plt.subplots(figsize=(max(10, n_tickers*0.5), 8))
-
-colors = inc_var_df["Incremental_VaR"].apply(lambda x: "red" if x > 0 else "green")
-y_pos = range(n_tickers)
-
-# Adjust bubble size
-bubble_sizes = inc_var_df["Weight_in_Full"] * 50000 / n_tickers
-
-ax2.scatter(inc_var_df["Incremental_VaR"], y_pos,
-            s=bubble_sizes, alpha=0.7, c=colors, edgecolors="black")
-
-for i, row in inc_var_df.iterrows():
-    offset = 0.02 if row["Incremental_VaR"] >= 0 else -0.02
-    ha = "left" if row["Incremental_VaR"] >= 0 else "right"
-    ax2.text(row["Incremental_VaR"] + offset, i, row["Ticker"], va="center", ha=ha)
-
-ax2.axvline(0, color="black", linestyle="--")
-ax2.set_yticks(y_pos)
-ax2.set_yticklabels(inc_var_df["Ticker"])
-ax2.set_xlabel("Incremental VaR")
-ax2.set_title("Incremental VaR per Asset (Markowitz Portfolio)")
-plt.tight_layout()
-st.pyplot(fig2)
-
-
-
-
