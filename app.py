@@ -39,7 +39,7 @@ st.dataframe(inc_var_df)
 
 # --- Bubble plot for IVaR
 st.subheader("IVaR Bubble Plot")
-fig2, ax2 = plt.subplots(figsize=(14, 8))
+fig2, ax2 = plt.subplots(figsize=(8, 8))
 colors = inc_var_df["Incremental_VaR"].apply(lambda x: "red" if x > 0 else "green")
 y_pos = range(len(inc_var_df))
 ax2.scatter(inc_var_df["Incremental_VaR"], y_pos,
@@ -54,4 +54,5 @@ ax2.set_yticklabels(inc_var_df["Ticker"])
 ax2.set_xlabel("Incremental VaR")
 ax2.set_title("Incremental VaR per Asset (Markowitz Portfolio)")
 st.pyplot(fig2)
+
 
