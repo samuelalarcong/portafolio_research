@@ -12,14 +12,24 @@ prices, returns = fetch_prices()
 w_markowitz = optimize_markowitz(returns)
 w_litterman = optimize_litterman(returns)
 
-# --- Bar plot of weights comparison
-st.subheader("Portfolio Weights Comparison")
-fig, ax = plt.subplots(figsize=(12, 6))
-w_markowitz.plot(kind="bar", alpha=0.6, label="Markowitz", ax=ax)
-w_litterman.plot(kind="bar", alpha=0.6, label="Black-Litterman", ax=ax)
-ax.set_ylabel("Weight")
-ax.set_title("Weights per Asset by Approach")
-ax.legend()
+# --- Horizontal bar plots side by side
+st.subheader("Portfolio Weights Comparison (Markowitz vs Black-Litterman)")
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 10))
+
+# Left: Markowitz
+w_markowitz.sort_values().plot(kind="barh", ax=ax1, color="skyblue")
+ax1.set_title("Markowitz Portfolio")
+ax1.set_xlabel("Weight")
+ax1.grid(True, linestyle="--", alpha=0.3)
+
+# Right: Black-Litterman
+w_litterman.sort_values().plot(kind="barh", ax=ax2, color="lightgreen")
+ax2.set_title("Black-Litterman Portfolio")
+ax2.set_xlabel("Weight")
+ax2.grid(True, linestyle="--", alpha=0.3)
+
+plt.tight_layout()
 st.pyplot(fig)
 
 # --- Compute IVaR for Markowitz
@@ -44,3 +54,4 @@ ax2.set_yticklabels(inc_var_df["Ticker"])
 ax2.set_xlabel("Incremental VaR")
 ax2.set_title("Incremental VaR per Asset (Markowitz Portfolio)")
 st.pyplot(fig2)
+
