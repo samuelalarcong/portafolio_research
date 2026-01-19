@@ -1,31 +1,34 @@
 import pandas as pd
-from portfolio_main import optimize_portfolio, calculate_var, compute_portfolio_daily_returns, GAMMA
+from portfolio_main import fetch_prices, optimize_portfolio, calculate_var
+
 
 def compute_incremental_var():
-    # Get full portfolio
-    port_daily, weights_full, returns = compute_portfolio_daily_returns()
-    tickers_used = returns.columns.tolist()
+    prices, returns = fetch_prices()
 
-    # Full portfolio VaR
-    VaR_full = calculate_var(weights_full, tickers_used, returns)
+    # ----- FULL PORTFOLIO -----
+    weights_full = optimize_portfolio(returns)
+    port_daily = (returns * weights_full).sum(axis=1)
+    VaR_full = calculate_var(port_daily)
 
-    incremental_var_results = []
-    active_tickers = weights_full[weights_full > 1e-6].index.tolist()
+    results = []
 
-    for ticker in active_tickers:
-        tickers_excluded = [t for t in tickers_used if t != ticker]
-        weights_excluded = optimize_portfolio(tickers_excluded, returns)
-        if weights_excluded is None:
-            continue
-        VaR_excluded = calculate_var(weights_excluded, tickers_excluded, returns)
-        incremental_var = VaR_full - VaR_excluded
-        incremental_var_results.append({
+    for ticker in weights_full.index:
+        reduced = returns.drop(columns=[ticker])
+
+        weights_ex = optimize_portfolio(reduced)
+        port_ex = (reduced * weights_ex).sum(axis=1)
+        VaR_ex = calculate_var(port_ex)
+
+        results.append({
             "Ticker": ticker,
-            "Weight_in_Full": weights_full[ticker],
-            "VaR_Full": VaR_full,
-            "VaR_Without": VaR_excluded,
-            "Incremental_VaR": incremental_var
+            "Weight": weights_full[ticker],
+            "VaR_Full_%": VaR_full * 100,
+            "VaR_Without_%": VaR_ex * 100,
+            "Incremental_VaR_%": (VaR_full - VaR_ex) * 100
         })
 
-    inc_var_df = pd.DataFrame(incremental_var_results).sort_values("Incremental_VaR", ascending=False)
+    inc_var_df = pd.DataFrame(results).sort_values(
+        "Incremental_VaR_%", ascending=False
+    )
+
     return inc_var_df, port_daily, weights_full
