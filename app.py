@@ -1,54 +1,46 @@
-import matplotlib
-matplotlib.use("Agg")
-
 import streamlit as st
 import matplotlib.pyplot as plt
-import numpy as np
-
+from portfolio_main import fetch_prices, optimize_markowitz, optimize_litterman
 from incrementalvar import compute_incremental_var
 
-st.set_page_config(page_title="Incremental VaR Dashboard", layout="wide")
+st.title("📊 Portfolio Analysis Dashboard")
 
-st.title("📊 Incremental VaR – Markowitz Portfolio")
+# --- Fetch prices
+prices, returns = fetch_prices()
 
-with st.spinner("Computing portfolio & incremental VaR..."):
-    inc_var_df, port_daily, weights = compute_incremental_var()
+# --- Compute portfolios
+w_markowitz = optimize_markowitz(returns)
+w_litterman = optimize_litterman(returns)
 
-# ---------- TABLE ----------
-st.subheader("Incremental VaR by Asset")
-st.dataframe(
-    inc_var_df.style.format({
-        "Weight": "{:.2%}",
-        "VaR_Full_%": "{:.2f}",
-        "VaR_Without_%": "{:.2f}",
-        "Incremental_VaR_%": "{:.2f}",
-    }),
-    use_container_width=True
-)
-
-# ---------- BUBBLE PLOT ----------
-st.subheader("Incremental VaR Contribution")
-
-fig, ax = plt.subplots(figsize=(12, 8))
-
-colors = inc_var_df["Incremental_VaR_%"].apply(
-    lambda x: "red" if x > 0 else "green"
-)
-
-ax.scatter(
-    inc_var_df["Incremental_VaR_%"],
-    range(len(inc_var_df)),
-    s=inc_var_df["Weight"] * 6000,
-    c=colors,
-    alpha=0.7,
-    edgecolors="black"
-)
-
-ax.set_yticks(range(len(inc_var_df)))
-ax.set_yticklabels(inc_var_df["Ticker"])
-ax.axvline(0, color="black", linestyle="--")
-
-ax.set_xlabel("Incremental VaR (%)")
-ax.set_title("Red = Risk Contributor | Green = Diversifier")
-
+# --- Bar plot of weights comparison
+st.subheader("Portfolio Weights Comparison")
+fig, ax = plt.subplots(figsize=(12, 6))
+w_markowitz.plot(kind="bar", alpha=0.6, label="Markowitz", ax=ax)
+w_litterman.plot(kind="bar", alpha=0.6, label="Black-Litterman", ax=ax)
+ax.set_ylabel("Weight")
+ax.set_title("Weights per Asset by Approach")
+ax.legend()
 st.pyplot(fig)
+
+# --- Compute IVaR for Markowitz
+st.subheader("Incremental VaR (Markowitz Portfolio)")
+inc_var_df, port_daily, weights_full = compute_incremental_var()
+st.dataframe(inc_var_df)
+
+# --- Bubble plot for IVaR
+st.subheader("IVaR Bubble Plot")
+fig2, ax2 = plt.subplots(figsize=(14, 8))
+colors = inc_var_df["Incremental_VaR"].apply(lambda x: "red" if x > 0 else "green")
+y_pos = range(len(inc_var_df))
+ax2.scatter(inc_var_df["Incremental_VaR"], y_pos,
+            s=inc_var_df["Weight_in_Full"]*10000, alpha=0.7, c=colors, edgecolors="black")
+for i, row in inc_var_df.iterrows():
+    offset = 0.02 if row["Incremental_VaR"] >= 0 else -0.02
+    ha = "left" if row["Incremental_VaR"] >= 0 else "right"
+    ax2.text(row["Incremental_VaR"] + offset, i, row["Ticker"], va="center", ha=ha)
+ax2.axvline(0, color="black", linestyle="--")
+ax2.set_yticks(y_pos)
+ax2.set_yticklabels(inc_var_df["Ticker"])
+ax2.set_xlabel("Incremental VaR")
+ax2.set_title("Incremental VaR per Asset (Markowitz Portfolio)")
+st.pyplot(fig2)
